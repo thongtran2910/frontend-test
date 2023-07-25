@@ -1,3 +1,5 @@
+import * as Tabs from '@radix-ui/react-tabs'
+
 import { CreateTodoForm } from '@/client/components/CreateTodoForm'
 import { TodoList } from '@/client/components/TodoList'
 
@@ -16,19 +18,56 @@ import { TodoList } from '@/client/components/TodoList'
  *  - https://www.radix-ui.com/docs/primitives/components/tabs
  */
 
+const tabArr = [
+  {
+    name: 'All',
+    value: 'all',
+  },
+  {
+    name: 'Pending',
+    value: 'pending',
+  },
+  {
+    name: 'Completed',
+    value: 'completed',
+  },
+]
+
 const Index = () => {
   return (
     <main className="mx-auto w-[480px] pt-12">
-      <div className="rounded-12 bg-white p-8 shadow-sm">
+      <div className="flex flex-col gap-10 rounded-12 bg-white p-8 shadow-sm">
         <h1 className="text-center text-4xl font-extrabold text-gray-900">
           Todo App
         </h1>
 
-        <div className="pt-10">
-          <TodoList />
+        <div>
+          <Tabs.Root defaultValue="all">
+            <Tabs.List
+              aria-label="todo status"
+              className="flex items-center gap-2"
+            >
+              {tabArr.map((tab, index) => (
+                <Tabs.Trigger
+                  key={index}
+                  value={tab.value}
+                  className="rounded-full border border-gray-200 px-6 py-3 text-sm font-bold text-gray-700 data-[state=active]:bg-gray-700 data-[state=active]:text-white"
+                >
+                  {tab.name}
+                </Tabs.Trigger>
+              ))}
+            </Tabs.List>
+            {tabArr.map((tab, index) => (
+              <Tabs.Content key={index} value={tab.value}>
+                <div className="pt-10">
+                  <TodoList tabValue={tab.value} />
+                </div>
+              </Tabs.Content>
+            ))}
+          </Tabs.Root>
         </div>
 
-        <div className="pt-10">
+        <div>
           <CreateTodoForm />
         </div>
       </div>

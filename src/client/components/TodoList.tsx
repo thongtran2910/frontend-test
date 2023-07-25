@@ -1,5 +1,5 @@
-import type { SVGProps } from 'react'
-
+import { type SVGProps } from 'react'
+import { useAutoAnimate } from '@formkit/auto-animate/react'
 import * as Checkbox from '@radix-ui/react-checkbox'
 
 import { api } from '@/utils/client/api'
@@ -63,29 +63,88 @@ import { api } from '@/utils/client/api'
  *  - https://auto-animate.formkit.com
  */
 
-export const TodoList = () => {
+export const TodoList = (
+  tabValue: { [s: string]: unknown } | ArrayLike<unknown>
+) => {
+  const [animate] = useAutoAnimate()
+
+  const apiContext = api.useContext()
+
   const { data: todos = [] } = api.todo.getAll.useQuery({
-    statuses: ['completed', 'pending'],
+    statuses: ['pending', 'completed'],
   })
 
-  return (
-    <ul className="grid grid-cols-1 gap-y-3">
-      {todos.map((todo) => (
-        <li key={todo.id}>
-          <div className="flex items-center rounded-12 border border-gray-200 px-4 py-3 shadow-sm">
-            <Checkbox.Root
-              id={String(todo.id)}
-              className="flex h-6 w-6 items-center justify-center rounded-6 border border-gray-300 focus:border-gray-700 focus:outline-none data-[state=checked]:border-gray-700 data-[state=checked]:bg-gray-700"
-            >
-              <Checkbox.Indicator>
-                <CheckIcon className="h-4 w-4 text-white" />
-              </Checkbox.Indicator>
-            </Checkbox.Root>
+  const { mutate: updateStatus } = api.todoStatus.update.useMutation({
+    onSettled: () => {
+      apiContext.todo.getAll.invalidate()
+    },
+  })
 
-            <label className="block pl-3 font-medium" htmlFor={String(todo.id)}>
-              {todo.body}
-            </label>
-          </div>
+  const { mutate: deleteTodo, isLoading: isDeletingTodo } =
+    api.todo.delete.useMutation({
+      onSettled: () => {
+        apiContext.todo.getAll.invalidate()
+      },
+    })
+
+  const renderList = todos.filter(
+    (todo) =>
+      Object.values(tabValue).toString() === todo.status ||
+      Object.values(tabValue).toString() === 'all'
+  )
+
+  return (
+    <ul ref={animate} className="grid grid-cols-1 gap-y-3">
+      {renderList.map((todo) => (
+        <li key={todo.id}>
+          <form
+            autoComplete="off"
+            className={`flex items-center gap-4 rounded-12 border border-gray-200 py-3 pl-4 pr-3 shadow-sm ${
+              todo.status === 'completed' ? `bg-gray-50` : ``
+            }`}
+          >
+            <div className="flex gap-3">
+              <Checkbox.Root
+                id={String(todo.id)}
+                checked={todo.status === 'completed' ? true : false}
+                className="flex h-6 w-6 items-center justify-center rounded-6 border border-gray-300 focus:border-gray-700 focus:outline-none data-[state=checked]:border-gray-700 data-[state=checked]:bg-gray-700"
+                onClick={() => {
+                  updateStatus({
+                    todoId: todo.id,
+                    status: todo.status === 'pending' ? 'completed' : 'pending',
+                  })
+                }}
+              >
+                <Checkbox.Indicator>
+                  <CheckIcon className="h-4 w-4 text-white" />
+                </Checkbox.Indicator>
+              </Checkbox.Root>
+
+              <label
+                className={`block w-[19rem] font-medium ${
+                  todo.status === 'completed'
+                    ? `text-gray-500 line-through`
+                    : ``
+                }`}
+                htmlFor={String(todo.id)}
+              >
+                {todo.body}
+              </label>
+            </div>
+            <button
+              className="flex items-center justify-center gap-2 p-1"
+              type="button"
+              disabled={isDeletingTodo}
+              onClick={() => {
+                deleteTodo({
+                  id: todo.id,
+                })
+              }}
+            >
+              <XMarkIcon className="h-6 w-6" />
+              <span className="visually-hidden">Delete</span>
+            </button>
+          </form>
         </li>
       ))}
     </ul>
@@ -100,6 +159,8 @@ const XMarkIcon = (props: SVGProps<SVGSVGElement>) => {
       viewBox="0 0 24 24"
       strokeWidth={1.5}
       stroke="currentColor"
+      focusable="false"
+      aria-hidden="true"
       {...props}
     >
       <path
